@@ -25,6 +25,7 @@ instance Multiplate Plate where
       buildExpr (Minus e1 e2) = Minus <$> expr plate e1 <*> expr plate e2
       buildExpr (Multi e1 e2) = Multi <$> expr plate e1 <*> expr plate e2
       buildExpr (Div   e1 e2) = Div   <$> expr plate e1 <*> expr plate e2
+      buildExpr (Let   d  e)  = Let   <$> decl plate d  <*> expr plate e
       buildExpr e             = pure e
       buildDecl (v := e)    = (:=) <$> pure v <*> expr plate e
       buildDecl (Seq d1 d2) = Seq  <$> decl plate d1 <*> decl plate d2
@@ -33,15 +34,12 @@ instance Multiplate Plate where
 normalizer :: Plate Identity
 normalizer = mapFamily myPlate
   where
-    myPlate = (purePlate :: Plate Identity) {expr = subE, decl = subD}
+    myPlate = (purePlate :: Plate Identity) {expr = subE}
     subE (Plus  (Num i) (Num j)) = pure $ Num (i + j)
     subE (Minus (Num i) (Num j)) = pure $ Num (i - j)
     subE (Multi (Num i) (Num j)) = pure $ Num (i * j)
     subE (Div   (Num i) (Num j)) = pure $ Num (i `div` j)
-    subE (Let d1 e1)             = Let <$> subD d1 <*> subE e1
     subE e                       = pure e
-    subD (v := e)                = (v :=) <$> subE e
-    subD d                       = pure d
 
 normalizeE :: Expr -> Expr
 normalizeE = traverseFor expr normalizer
